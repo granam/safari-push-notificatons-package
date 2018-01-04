@@ -1,0 +1,40 @@
+{
+  "name": "granam/apple-push-package",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Jaroslav Týc",
+      "homepage": "https://jaroslavtyc.com",
+      "role": "Original author"
+    }
+  ],
+  "type": "project",
+  "description": "Creates push package for Apple / Safari web push notifications",
+  "keywords": [
+    "php",
+    "apple",
+    "os",
+    "os x",
+    "APNs",
+    "safari",
+    "safari",
+    "push",
+    "package"
+  ],
+  "homepage": "https://github.com/jaroslavtyc/granam-apple-push-package",
+  "autoload": {
+    "psr-4": {
+      "Granam\\": "Granam/"
+    }
+  },
+  "require": {
+    "php": ">=7.0",
+    "ext-zip": "*",
+    "granam/strict-object": "^3.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "~6.0",
+    "mockery/mockery": "~1.0",
+    "granam/exceptions-hierarchy": "~4.0"
+  }
+}
