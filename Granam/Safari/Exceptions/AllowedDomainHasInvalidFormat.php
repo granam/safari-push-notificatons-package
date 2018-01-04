@@ -3,7 +3,7 @@ declare(strict_types=1); // on PHP 7+ are standard PHP methods strict to types o
 
 namespace Granam\Safari\Exceptions;
 
-class CanNotCopyWebsiteJsonToPackage extends \RuntimeException implements Runtime
+class AllowedDomainHasInvalidFormat extends \LogicException implements Logic
 {
 
 }

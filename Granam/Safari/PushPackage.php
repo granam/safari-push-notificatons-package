@@ -6,7 +6,7 @@ namespace Granam\Safari;
 use Granam\Strict\Object\StrictObject;
 
 /**
- * This is mostly just a syntax sugar of original https://github.com/connorlacombe/Safari-Push-Notifications/blob/master/createPushPackage.php
+ * This is mostly just a syntax sugar of original https://github.com/connorlacombe/Safari-Push-Notifications/
  *
  * @link https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/NotificationProgrammingGuideForWebsites/Introduction/Introduction.html#//apple_ref/doc/uid/TP40013225-CH1-SW1
  */
@@ -26,15 +26,57 @@ class PushPackage extends StrictObject
         'icon.iconset/icon_128x128@2x.png',
         'website.json'
     ];
-    /** @var string */
-    private $pathToWebsiteJson;
+
     /** @var array|string[] */
     private $pathToIcons = [];
     /** @var string */
     private $temporaryDir;
+    /**
+     * @var string
+     */
+    private $websiteName;
+    /**
+     * @var string
+     */
+    private $websitePushId;
+    /**
+     * @var array
+     */
+    private $allowedDomains;
+    /**
+     * @var string
+     */
+    private $urlFormatString;
+    /**
+     * @var string
+     */
+    private $webServiceUrl;
 
+    /**
+     * @param string $websiteName like Safari Push Demo, this is the heading used in Notification Center
+     * @param string $websitePushId like web.com.example (web. prefix is required), as specified in your Apple developer account
+     * @param array $allowedDomains like [https://api.example.com, https://www.example.com]
+     * @param string $urlFormatString like https://www.exmple.com/article.php?id=%@ ('%@' is a two-letter-named placeholder),
+     * the URL to go to when the notification is clicked (protocol is required and only http and https are allowed)
+     * @param string $webServiceUrl The location used to make requests to your web service. Must start with https.
+     * @param string $pathToIcon16x16Png
+     * @param string $pathToIcon16x16DoublePng
+     * @param string $pathToIcon32x32Png
+     * @param string $pathToIcon32x32DoublePng
+     * @param string $pathToIcon128x128Png
+     * @param string $pathToIcon128x128DoublePng
+     * @param string|null $temporaryDir
+     * @throws \Granam\Safari\Exceptions\InvalidFormatOfWebsitePushId
+     * @throws \Granam\Safari\Exceptions\NoAllowedDomains
+     * @throws \Granam\Safari\Exceptions\AllowedDomainHasInvalidFormat
+     * @throws \Granam\Safari\Exceptions\InvalidFormatOfLandingUrl
+     */
     public function __construct(
-        string $pathToWebsiteJson,
+        string $websiteName,
+        string $websitePushId,
+        array $allowedDomains,
+        string $urlFormatString,
+        string $webServiceUrl,
         string $pathToIcon16x16Png,
         string $pathToIcon16x16DoublePng,
         string $pathToIcon32x32Png,
@@ -44,7 +86,33 @@ class PushPackage extends StrictObject
         string $temporaryDir = null
     )
     {
-        $this->pathToWebsiteJson = $pathToWebsiteJson;
+        $this->websiteName = $websiteName;
+        if (!\preg_match('~^web([.]\w+){1,9}~u', $websitePushId)) {
+            throw new Exceptions\InvalidFormatOfWebsitePushId(
+                "Website push ID should be in format web.com.exanple.foo, got $websitePushId"
+            );
+        }
+        $this->websitePushId = $websitePushId;
+        if (!$allowedDomains) {
+            throw new Exceptions\NoAllowedDomains(
+                'At least single domain allowed to request permissions from an user is required'
+            );
+        }
+        foreach ($allowedDomains as $allowedDomain) {
+            if (!\filter_var($allowedDomain, FILTER_VALIDATE_URL)) {
+                throw new Exceptions\AllowedDomainHasInvalidFormat(
+                    "Given domain allowed to request permissions from an user is invalid: {$allowedDomain}"
+                );
+            }
+        }
+        $this->allowedDomains = $allowedDomains;
+        if (!\preg_match('~^https?://~', $urlFormatString)) {
+            throw new Exceptions\InvalidFormatOfLandingUrl(
+                "URL used as landing one after user click has to use http or https protocol, got $urlFormatString"
+            );
+        }
+        $this->urlFormatString = $urlFormatString;
+        $this->webServiceUrl = \rtrim($webServiceUrl, '/');
         $this->pathToIcons['icon_16x16.png'] = $pathToIcon16x16Png;
         $this->pathToIcons['icon_16x16@2x.png'] = $pathToIcon16x16DoublePng;
         $this->pathToIcons['icon_32x32.png'] = $pathToIcon32x32Png;
@@ -60,9 +128,13 @@ class PushPackage extends StrictObject
      * @param string $certificatePath
      * @param string $certificatePassword
      * @param string $intermediateCertificatePath
+     * @param string $userAuthenticationToken A string that helps you identify the user.
+     * It is included in later requests to your web service. This string must be 16 characters or greater.
      * @return string
+     * @throws \Granam\Safari\Exceptions\UserAuthenticationTokenIsTooShort
      * @throws \Granam\Safari\Exceptions\CanNotCreateTemporaryPackageDir
-     * @throws \Granam\Safari\Exceptions\CanNotCopyWebsiteJsonToPackage
+     * @throws \Granam\Safari\Exceptions\CanNotEncodeWebsiteToJson
+     * @throws \Granam\Safari\Exceptions\CanNotSaveWebsiteJsonToPackage
      * @throws \Granam\Safari\Exceptions\CanNotCreateZipArchive
      * @throws \Granam\Safari\Exceptions\CanNotAddFileToZipArchive
      * @throws \Granam\Safari\Exceptions\CanNotCloseZipArchive
@@ -84,12 +156,14 @@ class PushPackage extends StrictObject
     public function createPushPackage(
         string $certificatePath,
         string $certificatePassword,
-        string $intermediateCertificatePath
+        string $intermediateCertificatePath,
+        string $userAuthenticationToken
     ): string
     {
         // Create a temporary directory in which to assemble the push package
         $packageDir = $this->createTemporaryPackageDir();
-        $this->copyRawPushPackageFiles($packageDir);
+        $websiteJsonContent = $this->getWebsiteJsonContent($userAuthenticationToken);
+        $this->copyRawPushPackageFiles($packageDir, $websiteJsonContent);
         $this->createManifestFile($packageDir);
         $this->createSignature($packageDir, $certificatePath, $certificatePassword, $intermediateCertificatePath);
 
@@ -111,12 +185,46 @@ class PushPackage extends StrictObject
     }
 
     /**
+     * @param string $userAuthenticationToken
+     * @return string
+     * @throws \Granam\Safari\Exceptions\UserAuthenticationTokenIsTooShort
+     * @throws \Granam\Safari\Exceptions\CanNotEncodeWebsiteToJson
+     */
+    private function getWebsiteJsonContent(string $userAuthenticationToken): string
+    {
+        if (\mb_strlen($userAuthenticationToken) < 16) {
+            throw new Exceptions\UserAuthenticationTokenIsTooShort(
+                "User authentication token has to be at least 16 characters long, got $userAuthenticationToken with length "
+                . \mb_strlen($userAuthenticationToken)
+            );
+        }
+        $website = [
+            'websiteName' => $this->websiteName,
+            'websitePushID' => $this->websitePushId,
+            'allowedDomains' => $this->allowedDomains,
+            'urlFormatString' => $this->urlFormatString,
+            'authenticationToken' => $userAuthenticationToken,
+            'webServiceURL' => $this->webServiceUrl,
+        ];
+
+        $websiteJson = \json_encode($website, JSON_FORCE_OBJECT);
+        if (!$websiteJson) {
+            throw new Exceptions\CanNotEncodeWebsiteToJson(
+                'Can not turn to JSON object website data ' . \var_export($website, true)
+            );
+        }
+
+        return $websiteJson;
+    }
+
+    /**
      * @param string $packageDir
+     * @param string $websiteJsonContent
      * @throws \Granam\Safari\Exceptions\CanNotCreateDirForIconSet
      * @throws \Granam\Safari\Exceptions\CanNotCopyIcon
-     * @throws \Granam\Safari\Exceptions\CanNotCopyWebsiteJsonToPackage
+     * @throws \Granam\Safari\Exceptions\CanNotSaveWebsiteJsonToPackage
      */
-    private function copyRawPushPackageFiles(string $packageDir)
+    private function copyRawPushPackageFiles(string $packageDir, string $websiteJsonContent)
     {
         $iconSetDir = $packageDir . '/icon.iconset'; // this dir name is required by Apple
         if (!@\mkdir($iconSetDir) && !\is_dir($packageDir)) {
@@ -129,9 +237,9 @@ class PushPackage extends StrictObject
             }
         }
         $websiteJsonDestinationPath = $packageDir . '/website.json';
-        if (!\copy($this->pathToWebsiteJson, $websiteJsonDestinationPath)) {
-            throw new Exceptions\CanNotCopyWebsiteJsonToPackage(
-                "Can not copy $this->pathToWebsiteJson to $websiteJsonDestinationPath"
+        if (!\file_put_contents($websiteJsonDestinationPath, $websiteJsonContent)) {
+            throw new Exceptions\CanNotSaveWebsiteJsonToPackage(
+                "Can not save $websiteJsonContent to $websiteJsonDestinationPath"
             );
         }
     }
