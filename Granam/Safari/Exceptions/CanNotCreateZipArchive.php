@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1); // on PHP 7+ are standard PHP methods strict to types of given parameters
 
-namespace Granam\Apple\Exceptions;
+namespace Granam\Safari\Exceptions;
 
-interface Logic extends Exception
+class CanNotCreateZipArchive extends \RuntimeException implements Runtime
 {
 
 }

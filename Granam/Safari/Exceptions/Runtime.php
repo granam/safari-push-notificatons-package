@@ -1,5 +1,5 @@
 <?php
-namespace Granam\Apple\Exceptions;
+namespace Granam\Safari\Exceptions;
 
 interface Runtime extends Exception
 {

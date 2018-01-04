@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1); // on PHP 7+ are standard PHP methods strict to types of given parameters
 
-namespace Granam\Apple;
+namespace Granam\Safari;
 
 use Granam\Strict\Object\StrictObject;
 
@@ -61,25 +61,25 @@ class PushPackage extends StrictObject
      * @param string $certificatePassword
      * @param string $intermediateCertificatePath
      * @return string
-     * @throws \Granam\Apple\Exceptions\CanNotCreateTemporaryPackageDir
-     * @throws \Granam\Apple\Exceptions\CanNotCopyWebsiteJsonToPackage
-     * @throws \Granam\Apple\Exceptions\CanNotCreateZipArchive
-     * @throws \Granam\Apple\Exceptions\CanNotAddFileToZipArchive
-     * @throws \Granam\Apple\Exceptions\CanNotCloseZipArchive
-     * @throws \Granam\Apple\Exceptions\CanNotCreateDirForIconSet
-     * @throws \Granam\Apple\Exceptions\CanNotCopyIcon
-     * @throws \Granam\Apple\Exceptions\CanNotCalculateSha1FromFile
-     * @throws \Granam\Apple\Exceptions\CanNotEncodeManifestDataToJson
-     * @throws \Granam\Apple\Exceptions\CanNotSaveManifestJsonFile
-     * @throws \Granam\Apple\Exceptions\CanNotGetCertificateContent
-     * @throws \Granam\Apple\Exceptions\CanNotReadCertificateData
-     * @throws \Granam\Apple\Exceptions\CanNotGetResourceFromOpenedCertificate
-     * @throws \Granam\Apple\Exceptions\CanNotGetPrivateKeyFromOpenedCertificate
-     * @throws \Granam\Apple\Exceptions\CanNotSignManifest
-     * @throws \Granam\Apple\Exceptions\CanNotReadPemSignatureFromFile
-     * @throws \Granam\Apple\Exceptions\UnexpectedContentOfPemSignature
-     * @throws \Granam\Apple\Exceptions\CanNotCreateDerSignatureByDecodingToBase64
-     * @throws \Granam\Apple\Exceptions\CanNotSaveDerSignatureToFile
+     * @throws \Granam\Safari\Exceptions\CanNotCreateTemporaryPackageDir
+     * @throws \Granam\Safari\Exceptions\CanNotCopyWebsiteJsonToPackage
+     * @throws \Granam\Safari\Exceptions\CanNotCreateZipArchive
+     * @throws \Granam\Safari\Exceptions\CanNotAddFileToZipArchive
+     * @throws \Granam\Safari\Exceptions\CanNotCloseZipArchive
+     * @throws \Granam\Safari\Exceptions\CanNotCreateDirForIconSet
+     * @throws \Granam\Safari\Exceptions\CanNotCopyIcon
+     * @throws \Granam\Safari\Exceptions\CanNotCalculateSha1FromFile
+     * @throws \Granam\Safari\Exceptions\CanNotEncodeManifestDataToJson
+     * @throws \Granam\Safari\Exceptions\CanNotSaveManifestJsonFile
+     * @throws \Granam\Safari\Exceptions\CanNotGetCertificateContent
+     * @throws \Granam\Safari\Exceptions\CanNotReadCertificateData
+     * @throws \Granam\Safari\Exceptions\CanNotGetResourceFromOpenedCertificate
+     * @throws \Granam\Safari\Exceptions\CanNotGetPrivateKeyFromOpenedCertificate
+     * @throws \Granam\Safari\Exceptions\CanNotSignManifest
+     * @throws \Granam\Safari\Exceptions\CanNotReadPemSignatureFromFile
+     * @throws \Granam\Safari\Exceptions\UnexpectedContentOfPemSignature
+     * @throws \Granam\Safari\Exceptions\CanNotCreateDerSignatureByDecodingToBase64
+     * @throws \Granam\Safari\Exceptions\CanNotSaveDerSignatureToFile
      */
     public function createPushPackage(
         string $certificatePath,
@@ -98,7 +98,7 @@ class PushPackage extends StrictObject
 
     /**
      * @return string
-     * @throws \Granam\Apple\Exceptions\CanNotCreateTemporaryPackageDir
+     * @throws \Granam\Safari\Exceptions\CanNotCreateTemporaryPackageDir
      */
     private function createTemporaryPackageDir(): string
     {
@@ -112,9 +112,9 @@ class PushPackage extends StrictObject
 
     /**
      * @param string $packageDir
-     * @throws \Granam\Apple\Exceptions\CanNotCreateDirForIconSet
-     * @throws \Granam\Apple\Exceptions\CanNotCopyIcon
-     * @throws \Granam\Apple\Exceptions\CanNotCopyWebsiteJsonToPackage
+     * @throws \Granam\Safari\Exceptions\CanNotCreateDirForIconSet
+     * @throws \Granam\Safari\Exceptions\CanNotCopyIcon
+     * @throws \Granam\Safari\Exceptions\CanNotCopyWebsiteJsonToPackage
      */
     private function copyRawPushPackageFiles(string $packageDir)
     {
@@ -140,9 +140,9 @@ class PushPackage extends StrictObject
      * Creates the manifest file by calculating the SHA1 hashes for all of the raw files in the package.
      *
      * @param string $packageDir
-     * @throws \Granam\Apple\Exceptions\CanNotCalculateSha1FromFile
-     * @throws \Granam\Apple\Exceptions\CanNotEncodeManifestDataToJson
-     * @throws \Granam\Apple\Exceptions\CanNotSaveManifestJsonFile
+     * @throws \Granam\Safari\Exceptions\CanNotCalculateSha1FromFile
+     * @throws \Granam\Safari\Exceptions\CanNotEncodeManifestDataToJson
+     * @throws \Granam\Safari\Exceptions\CanNotSaveManifestJsonFile
      */
     private function createManifestFile(string $packageDir)
     {
@@ -176,15 +176,15 @@ class PushPackage extends StrictObject
      * @param string $certificatePath
      * @param string $certificatePassword
      * @param string $intermediateCertificatePath
-     * @throws \Granam\Apple\Exceptions\CanNotGetCertificateContent
-     * @throws \Granam\Apple\Exceptions\CanNotReadCertificateData
-     * @throws \Granam\Apple\Exceptions\CanNotGetResourceFromOpenedCertificate
-     * @throws \Granam\Apple\Exceptions\CanNotGetPrivateKeyFromOpenedCertificate
-     * @throws \Granam\Apple\Exceptions\CanNotSignManifest
-     * @throws \Granam\Apple\Exceptions\CanNotReadPemSignatureFromFile
-     * @throws \Granam\Apple\Exceptions\UnexpectedContentOfPemSignature
-     * @throws \Granam\Apple\Exceptions\CanNotCreateDerSignatureByDecodingToBase64
-     * @throws \Granam\Apple\Exceptions\CanNotSaveDerSignatureToFile
+     * @throws \Granam\Safari\Exceptions\CanNotGetCertificateContent
+     * @throws \Granam\Safari\Exceptions\CanNotReadCertificateData
+     * @throws \Granam\Safari\Exceptions\CanNotGetResourceFromOpenedCertificate
+     * @throws \Granam\Safari\Exceptions\CanNotGetPrivateKeyFromOpenedCertificate
+     * @throws \Granam\Safari\Exceptions\CanNotSignManifest
+     * @throws \Granam\Safari\Exceptions\CanNotReadPemSignatureFromFile
+     * @throws \Granam\Safari\Exceptions\UnexpectedContentOfPemSignature
+     * @throws \Granam\Safari\Exceptions\CanNotCreateDerSignatureByDecodingToBase64
+     * @throws \Granam\Safari\Exceptions\CanNotSaveDerSignatureToFile
      */
     private function createSignature(
         string $packageDir,
@@ -212,8 +212,8 @@ class PushPackage extends StrictObject
      * @param string $certificatePath
      * @param string $certificatePassword
      * @return array
-     * @throws \Granam\Apple\Exceptions\CanNotGetCertificateContent
-     * @throws \Granam\Apple\Exceptions\CanNotReadCertificateData
+     * @throws \Granam\Safari\Exceptions\CanNotGetCertificateContent
+     * @throws \Granam\Safari\Exceptions\CanNotReadCertificateData
      */
     private function getCertificateData(string $certificatePath, string $certificatePassword): array
     {
@@ -236,7 +236,7 @@ class PushPackage extends StrictObject
      * @param array $certificateData
      * @param string $certificatePath
      * @return resource
-     * @throws \Granam\Apple\Exceptions\CanNotGetResourceFromOpenedCertificate
+     * @throws \Granam\Safari\Exceptions\CanNotGetResourceFromOpenedCertificate
      */
     private function getCertificateResource(array $certificateData, string $certificatePath)
     {
@@ -255,7 +255,7 @@ class PushPackage extends StrictObject
      * @param string $certificatePassword
      * @param string $certificatePath
      * @return bool|resource
-     * @throws \Granam\Apple\Exceptions\CanNotGetPrivateKeyFromOpenedCertificate
+     * @throws \Granam\Safari\Exceptions\CanNotGetPrivateKeyFromOpenedCertificate
      */
     private function getPrivateKeyResource(array $certificateData, string $certificatePassword, string $certificatePath)
     {
@@ -277,7 +277,7 @@ class PushPackage extends StrictObject
      * @param $certificateResource
      * @param $privateKey
      * @param string $intermediateCertificatePath
-     * @throws \Granam\Apple\Exceptions\CanNotSignManifest
+     * @throws \Granam\Safari\Exceptions\CanNotSignManifest
      */
     private function signManifest(
         string $manifestFullPath,
@@ -306,10 +306,10 @@ class PushPackage extends StrictObject
 
     /**
      * @param string $pemSignatureFullPath
-     * @throws \Granam\Apple\Exceptions\CanNotReadPemSignatureFromFile
-     * @throws \Granam\Apple\Exceptions\UnexpectedContentOfPemSignature
-     * @throws \Granam\Apple\Exceptions\CanNotCreateDerSignatureByDecodingToBase64
-     * @throws \Granam\Apple\Exceptions\CanNotSaveDerSignatureToFile
+     * @throws \Granam\Safari\Exceptions\CanNotReadPemSignatureFromFile
+     * @throws \Granam\Safari\Exceptions\UnexpectedContentOfPemSignature
+     * @throws \Granam\Safari\Exceptions\CanNotCreateDerSignatureByDecodingToBase64
+     * @throws \Granam\Safari\Exceptions\CanNotSaveDerSignatureToFile
      */
     private function convertSignatureFromPemToDer(string $pemSignatureFullPath)
     {
@@ -340,9 +340,9 @@ class PushPackage extends StrictObject
      *
      * @param string $packageDir
      * @return string full path to ZIP archive with archived package
-     * @throws \Granam\Apple\Exceptions\CanNotCreateZipArchive
-     * @throws \Granam\Apple\Exceptions\CanNotAddFileToZipArchive
-     * @throws \Granam\Apple\Exceptions\CanNotCloseZipArchive
+     * @throws \Granam\Safari\Exceptions\CanNotCreateZipArchive
+     * @throws \Granam\Safari\Exceptions\CanNotAddFileToZipArchive
+     * @throws \Granam\Safari\Exceptions\CanNotCloseZipArchive
      */
     private function packageRawData(string $packageDir): string
     {
