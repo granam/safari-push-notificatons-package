@@ -106,10 +106,11 @@ function pushSafariNotification(webServiceId, webServiceUrl, serverPushUrl, user
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded'); // like form submit
         xhr.onload = function () {
             if (xhr.status !== 200) {
+                triggerEventOnWindow('safariPushNotificationHasNotBeenSent');
                 throw ('Pushing Safari notification failed with response code ' + xhr.status + ', message ' + xhr.statusText
                     + ' and headers ' + xhr.getAllResponseHeaders().join('; '));
             }
-            triggerEventOnWindow('safariPushNotificationSent');
+            triggerEventOnWindow('safariPushNotificationHasBeenSent');
         };
         var data = new FormData();
         data.set('title', title)
@@ -128,10 +129,10 @@ function pushSafariNotification(webServiceId, webServiceUrl, serverPushUrl, user
     );
     var permissionsGranted = checkPermissionsForSafariPushNotifications(webServiceId, webServiceUrl, userId, permissionsEventCatcher);
     if (permissionsGranted === false) {
-        return;
+        triggerEventOnWindow('safariPushNotificationHasNotBeenSent');
     }
     if (permissionsGranted === true) {
         _pushSafariNotification(serverPushUrl, userId, title, text, buttonText);
     }
-    // null means we are waiting for user - the permissionsEventCatcher will solve result of that
+    // null means we are waiting for user and permission-solving request to Apple - the permissionsEventCatcher will take care about result of that
 }
