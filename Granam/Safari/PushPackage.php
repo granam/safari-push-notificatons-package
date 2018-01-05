@@ -160,7 +160,7 @@ class PushPackage extends StrictObject
     /**
      * Creates the push package, ZIP it and returns the path to that archive.
      *
-     * @param string $userAuthenticationToken A string that helps you identify the user.
+     * @param string $userId A string that helps you identify the user.
      * It is included in later requests to your web service. This string must be 16 characters or greater.
      * @return string full path to ZIPed package file
      * @throws \Granam\Safari\Exceptions\CanNotCreateTemporaryPackageDir
@@ -184,11 +184,11 @@ class PushPackage extends StrictObject
      * @throws \Granam\Safari\Exceptions\CanNotCreateDerSignatureByDecodingToBase64
      * @throws \Granam\Safari\Exceptions\CanNotSaveDerSignatureToFile
      */
-    public function createPushPackage(string $userAuthenticationToken): string
+    public function createPushPackage(string $userId): string
     {
         // Create a temporary directory in which to assemble the push package
         $packageDir = $this->createTemporaryPackageDir();
-        $websiteJsonContent = $this->getWebsiteJsonContent($userAuthenticationToken);
+        $websiteJsonContent = $this->getWebsiteJsonContent($userId);
         $this->copyRawPushPackageFiles($packageDir, $websiteJsonContent);
         $this->createManifestFile($packageDir);
         $this->createSignature($packageDir);
@@ -211,22 +211,23 @@ class PushPackage extends StrictObject
     }
 
     /**
-     * @param string $userAuthenticationToken
+     * @param string $userId just some per-user-unique ID of your choice
      * @return string
      * @throws \Granam\Safari\Exceptions\CanNotEncodeWebsiteToJson
      */
-    private function getWebsiteJsonContent(string $userAuthenticationToken): string
+    private function getWebsiteJsonContent(string $userId): string
     {
-        if (\mb_strlen($userAuthenticationToken) < 16) {
-            // we have to add "authentication_token_" because it has to be at least 16 for some Apple reason
-            $userAuthenticationToken = 'authentication_token_' . $userAuthenticationToken;
+        /** need double-prefix for later parse, @see parseUserId */
+        if (\mb_strlen($userId) < 16 || strpos($userId, 'user_identifier_') === 0) {
+            // we have to add "user_identifier_" because it has to be at least 16 for some Apple reason
+            $userId = 'user_identifier_' . $userId;
         }
         $website = [
             'websiteName' => $this->websiteName,
             'websitePushID' => $this->websitePushId,
             'allowedDomains' => $this->allowedDomains,
             'urlFormatString' => $this->urlFormatString,
-            'authenticationToken' => $userAuthenticationToken,
+            'authenticationToken' => $userId, // just some per-user-unique ID of your choice
             'webServiceURL' => $this->webServiceUrl,
         ];
 
@@ -480,5 +481,10 @@ class PushPackage extends StrictObject
         }
 
         return $zipFileName;
+    }
+
+    public function parseUserId(string $rawUserId): string
+    {
+        return (string)\preg_replace('~^user_identifier_~', '', $rawUserId);
     }
 }

@@ -8,7 +8,7 @@ use Granam\Strict\Object\StrictObject;
 /**
  * This is mostly just a syntax sugar of original https://github.com/connorlacombe/Safari-Push-Notifications/
  */
-abstract class PushPackageController extends StrictObject
+abstract class PushNotificationsController extends StrictObject
 {
     /**
      * @var PushPackage
@@ -54,7 +54,7 @@ abstract class PushPackageController extends StrictObject
             exit;
         }
         if (!$this->isWebsitePushIdMatching($matches['websitePushId'])) {
-            \header('HTTP/1.1 403 Forbidden Invalid Website Push Id');
+            \header('HTTP/1.1 403 Forbidden Invalid Parameter websitePushId');
             exit;
         }
         $contents = \file_get_contents('php://input');
@@ -63,12 +63,12 @@ abstract class PushPackageController extends StrictObject
             exit;
         }
         $contents = \json_decode($contents, true /* to get associative array */);
-        $userAuthenticationToken = (string)($contents['id'] ?? '');
-        if ($userAuthenticationToken === '') {
-            \header('HTTP/1.0 400 Bad Request Missing Parameter id');
+        $userId = (string)($contents['userId'] ?? '');
+        if ($userId === '') {
+            \header('HTTP/1.0 400 Bad Request Missing Parameter userId');
             exit;
         }
-        $zipPackage = $this->pushPackage->createPushPackage($userAuthenticationToken);
+        $zipPackage = $this->pushPackage->createPushPackage($userId);
         header('Content-type: application/zip');
         readfile($zipPackage);
         exit;
@@ -91,11 +91,11 @@ abstract class PushPackageController extends StrictObject
      *
      * @link https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/NotificationProgrammingGuideForWebsites/PushNotifications/PushNotifications.html#//apple_ref/doc/uid/TP40013225-CH3-SW24
      */
-    public function devices()
+    public function devicesRegistrations()
     {
-        // this is the authorization key we packaged in the website.json pushPackage
-        $userAuthenticationToken = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-        if ($userAuthenticationToken === '') {
+        /** this is the authenticationToken key we packaged in the website.json pushPackage, @see \Granam\Safari\PushPackage::getWebsiteJsonContent */
+        $userId = $this->pushPackage->parseUserId($_SERVER['HTTP_AUTHORIZATION'] ?? ''); // need to be parsed as it could be encoded due to Apple length requirement
+        if ($userId === '') {
             \header('HTTP/1.1 401 Unauthorized');
             exit;
         }
@@ -110,18 +110,18 @@ abstract class PushPackageController extends StrictObject
         }
         $deviceToken = $matches['deviceToken'];
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->addDevice($userAuthenticationToken, $deviceToken);
+            $this->addDevice($userId, $deviceToken);
             exit;
         }
         if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
-            $this->deleteDevice($userAuthenticationToken, $deviceToken);
+            $this->deleteDevice($userId, $deviceToken);
             exit;
         }
     }
 
-    abstract protected function addDevice(string $userAuthenticationToken, string $token);
+    abstract protected function addDevice(string $userId, string $token);
 
-    abstract protected function deleteDevice(string $userAuthenticationToken, string $token);
+    abstract protected function deleteDevice(string $userId, string $token);
 
     /**
      * To receive reported errors from Apple.
@@ -149,21 +149,24 @@ abstract class PushPackageController extends StrictObject
      * @link https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/NotificationProgrammingGuideForWebsites/PushNotifications/PushNotifications.html#//apple_ref/doc/uid/TP40013225-CH3-SW12
      * @throws \Granam\Safari\Exceptions\CanNotEncodePushPayloadToJson
      */
-    public function push()
+    public function pushNotification()
     {
         $title = \trim($_POST['title'] ?? $_GET['title'] ?? '');
         if ($title === '') {
             \header('HTTP/1.0 400 Bad Request Missing Title');
+            echo 'Missing "title"';
             exit;
         }
         $text = \trim($_POST['text'] ?? $_GET['text'] ?? '');
         if ($text === '') {
             \header('HTTP/1.0 400 Bad Request Missing Text');
+            echo 'Missing "text"';
             exit;
         }
-        $userAuthenticationToken = \trim($_POST['user-authentication-token'] ?? $_GET['user-authentication-token'] ?? '');
-        if ($userAuthenticationToken === '') {
-            \header('HTTP/1.0 400 Bad Request Missing User Authentication Token');
+        $userId = \trim($_POST['user-id'] ?? $_GET['user-id'] ?? '');
+        if ($userId === '') {
+            \header('HTTP/1.0 400 Bad Request Missing user-id');
+            echo 'Missing "user-id"';
             exit;
         }
         $urlArguments = $_POST['arguments'] ?? $_GET['arguments'] ?? [];
@@ -172,12 +175,15 @@ abstract class PushPackageController extends StrictObject
         }
         if (\count($urlArguments) !== $this->pushPackage->getCountOfExpectedArguments()) {
             \header('HTTP/1.0 400 Bad Request Invalid Number Of Arguments');
+            echo 'Invalid number of arguments, expected ' . $this->pushPackage->getCountOfExpectedArguments()
+                . ' of them, got ' . var_export($urlArguments, true);
             exit;
         }
         $buttonText = \trim($_POST['button-text'] ?? $_GET['button-text'] ?? ''); // if empty then MacOS will use default one (View)
-        $deviceToken = $this->getDeviceToken($userAuthenticationToken);
+        $deviceToken = $this->getDeviceToken($userId);
         if (!$deviceToken) {
             \header('HTTP/1.0 404 Not Found Device by Given User Authentication Token');
+            echo 'No device has been found by give user authentication token';
             exit;
         }
         $payload = [
@@ -197,8 +203,10 @@ abstract class PushPackageController extends StrictObject
             );
         }
         if (\strlen($jsonPayload) > 256) {
-            if ($userAuthenticationToken === '') {
+            if ($userId === '') {
                 \header('HTTP/1.0 400 Bad Request Payload To Sent Is Too Long');
+                echo 'Final push notification payload to send is longer than allowed 256 bytes with length of '
+                    . \strlen($jsonPayload) . ' bytes';
                 exit;
             }
         }
@@ -206,14 +214,15 @@ abstract class PushPackageController extends StrictObject
     }
 
     /**
-     * @param string $userAuthenticationToken
+     * @param string $userId
      * @return string Empty string of no matching device token has been found
      */
-    abstract protected function getDeviceToken(string $userAuthenticationToken): string;
+    abstract protected function getDeviceToken(string $userId): string;
 
     /**
      * @param string $jsonPayload
      * @param string $deviceToken
+     * @return bool True on success, False on failure (for asynchronous requests just return True).
      */
-    abstract protected function sendPushNotification(string $jsonPayload, string $deviceToken);
+    abstract protected function sendPushNotification(string $jsonPayload, string $deviceToken): bool;
 }
