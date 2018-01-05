@@ -27,9 +27,13 @@ class PushPackage extends StrictObject
         'website.json'
     ];
 
-    /** @var array|string[] */
+    /**
+     * @var array|string[]
+     */
     private $pathToIcons = [];
-    /** @var string */
+    /**
+     * @var string
+     */
     private $temporaryDir;
     /**
      * @var string
@@ -51,8 +55,23 @@ class PushPackage extends StrictObject
      * @var string
      */
     private $webServiceUrl;
+    /**
+     * @var string
+     */
+    private $certificatePath;
+    /**
+     * @var string
+     */
+    private $certificatePassword;
+    /**
+     * @var string
+     */
+    private $intermediateCertificatePath;
 
     /**
+     * @param string $certificatePath
+     * @param string $certificatePassword
+     * @param string $intermediateCertificatePath
      * @param string $websiteName like Safari Push Demo, this is the heading used in Notification Center
      * @param string $websitePushId like web.com.example (web. prefix is required), as specified in your Apple developer account
      * @param array $allowedDomains like [https://api.example.com, https://www.example.com]
@@ -72,6 +91,9 @@ class PushPackage extends StrictObject
      * @throws \Granam\Safari\Exceptions\InvalidFormatOfLandingUrl
      */
     public function __construct(
+        string $certificatePath,
+        string $certificatePassword,
+        string $intermediateCertificatePath,
         string $websiteName,
         string $websitePushId,
         array $allowedDomains,
@@ -86,6 +108,9 @@ class PushPackage extends StrictObject
         string $temporaryDir = null
     )
     {
+        $this->certificatePath = $certificatePath;
+        $this->certificatePassword = $certificatePassword;
+        $this->intermediateCertificatePath = $intermediateCertificatePath;
         $this->websiteName = $websiteName;
         if (!\preg_match('~^web([.]\w+){1,9}~u', $websitePushId)) {
             throw new Exceptions\InvalidFormatOfWebsitePushId(
@@ -122,16 +147,22 @@ class PushPackage extends StrictObject
         $this->temporaryDir = $temporaryDir ?? \sys_get_temp_dir();
     }
 
+    public function getWebsitePushId(): string
+    {
+        return $this->websitePushId;
+    }
+
+    public function getCountOfExpectedArguments(): int
+    {
+        return \substr_count($this->urlFormatString, '%@');
+    }
+
     /**
      * Creates the push package, ZIP it and returns the path to that archive.
      *
-     * @param string $certificatePath
-     * @param string $certificatePassword
-     * @param string $intermediateCertificatePath
      * @param string $userAuthenticationToken A string that helps you identify the user.
      * It is included in later requests to your web service. This string must be 16 characters or greater.
-     * @return string
-     * @throws \Granam\Safari\Exceptions\UserAuthenticationTokenIsTooShort
+     * @return string full path to ZIPed package file
      * @throws \Granam\Safari\Exceptions\CanNotCreateTemporaryPackageDir
      * @throws \Granam\Safari\Exceptions\CanNotEncodeWebsiteToJson
      * @throws \Granam\Safari\Exceptions\CanNotSaveWebsiteJsonToPackage
@@ -153,19 +184,14 @@ class PushPackage extends StrictObject
      * @throws \Granam\Safari\Exceptions\CanNotCreateDerSignatureByDecodingToBase64
      * @throws \Granam\Safari\Exceptions\CanNotSaveDerSignatureToFile
      */
-    public function createPushPackage(
-        string $certificatePath,
-        string $certificatePassword,
-        string $intermediateCertificatePath,
-        string $userAuthenticationToken
-    ): string
+    public function createPushPackage(string $userAuthenticationToken): string
     {
         // Create a temporary directory in which to assemble the push package
         $packageDir = $this->createTemporaryPackageDir();
         $websiteJsonContent = $this->getWebsiteJsonContent($userAuthenticationToken);
         $this->copyRawPushPackageFiles($packageDir, $websiteJsonContent);
         $this->createManifestFile($packageDir);
-        $this->createSignature($packageDir, $certificatePath, $certificatePassword, $intermediateCertificatePath);
+        $this->createSignature($packageDir);
 
         return $this->packageRawData($packageDir);
     }
@@ -187,16 +213,13 @@ class PushPackage extends StrictObject
     /**
      * @param string $userAuthenticationToken
      * @return string
-     * @throws \Granam\Safari\Exceptions\UserAuthenticationTokenIsTooShort
      * @throws \Granam\Safari\Exceptions\CanNotEncodeWebsiteToJson
      */
     private function getWebsiteJsonContent(string $userAuthenticationToken): string
     {
         if (\mb_strlen($userAuthenticationToken) < 16) {
-            throw new Exceptions\UserAuthenticationTokenIsTooShort(
-                "User authentication token has to be at least 16 characters long, got $userAuthenticationToken with length "
-                . \mb_strlen($userAuthenticationToken)
-            );
+            // we have to add "authentication_token_" because it has to be at least 16 for some Apple reason
+            $userAuthenticationToken = 'authentication_token_' . $userAuthenticationToken;
         }
         $website = [
             'websiteName' => $this->websiteName,
@@ -281,9 +304,6 @@ class PushPackage extends StrictObject
      * Creates a signature of the manifest using the push notification certificate.
      *
      * @param string $packageDir
-     * @param string $certificatePath
-     * @param string $certificatePassword
-     * @param string $intermediateCertificatePath
      * @throws \Granam\Safari\Exceptions\CanNotGetCertificateContent
      * @throws \Granam\Safari\Exceptions\CanNotReadCertificateData
      * @throws \Granam\Safari\Exceptions\CanNotGetResourceFromOpenedCertificate
@@ -294,46 +314,38 @@ class PushPackage extends StrictObject
      * @throws \Granam\Safari\Exceptions\CanNotCreateDerSignatureByDecodingToBase64
      * @throws \Granam\Safari\Exceptions\CanNotSaveDerSignatureToFile
      */
-    private function createSignature(
-        string $packageDir,
-        string $certificatePath,
-        string $certificatePassword,
-        string $intermediateCertificatePath
-    )
+    private function createSignature(string $packageDir)
     {
-        $certificateData = $this->getCertificateData($certificatePath, $certificatePassword);
+        $certificateData = $this->getCertificateData();
         $signatureFullPath = "$packageDir/signature";
-        $certificateResource = $this->getCertificateResource($certificateData, $certificatePath);
-        $privateKeyResource = $this->getPrivateKeyResource($certificateData, $certificatePassword, $certificatePath);
+        $certificateResource = $this->getCertificateResource($certificateData);
+        $privateKeyResource = $this->getPrivateKeyResource($certificateData);
         $manifestFullPath = "$packageDir/manifest.json";
         $this->signManifest(
             $manifestFullPath,
             $signatureFullPath,
             $certificateResource,
-            $privateKeyResource,
-            $intermediateCertificatePath
+            $privateKeyResource
         );
         $this->convertSignatureFromPemToDer($signatureFullPath);
     }
 
     /**
-     * @param string $certificatePath
-     * @param string $certificatePassword
      * @return array
      * @throws \Granam\Safari\Exceptions\CanNotGetCertificateContent
      * @throws \Granam\Safari\Exceptions\CanNotReadCertificateData
      */
-    private function getCertificateData(string $certificatePath, string $certificatePassword): array
+    private function getCertificateData(): array
     {
         // Load the push notification certificate
-        $pkcs12 = \file_get_contents($certificatePath);
+        $pkcs12 = \file_get_contents($this->certificatePath);
         if (!$pkcs12) {
-            throw new Exceptions\CanNotGetCertificateContent("Can not get certificate content from $certificatePath");
+            throw new Exceptions\CanNotGetCertificateContent("Can not get certificate content from $this->certificatePath");
         }
         $certificateData = [];
-        if (!\openssl_pkcs12_read($pkcs12, $certificateData, $certificatePassword)) {
+        if (!\openssl_pkcs12_read($pkcs12, $certificateData, $this->certificatePassword)) {
             throw new Exceptions\CanNotReadCertificateData(
-                "Can not read certificate data, fetched from $certificatePath, using given password"
+                "Can not read certificate data, fetched from $this->certificatePath, using given password"
             );
         }
 
@@ -342,16 +354,15 @@ class PushPackage extends StrictObject
 
     /**
      * @param array $certificateData
-     * @param string $certificatePath
      * @return resource
      * @throws \Granam\Safari\Exceptions\CanNotGetResourceFromOpenedCertificate
      */
-    private function getCertificateResource(array $certificateData, string $certificatePath)
+    private function getCertificateResource(array $certificateData)
     {
         $certificateResource = \openssl_x509_read($certificateData['cert']);
         if (!$certificateResource) {
             throw new Exceptions\CanNotGetResourceFromOpenedCertificate(
-                "Can not open certificate after successful decoding of $certificatePath"
+                "Can not open certificate after successful decoding of $this->certificatePath"
             );
         }
 
@@ -360,17 +371,15 @@ class PushPackage extends StrictObject
 
     /**
      * @param array $certificateData
-     * @param string $certificatePassword
-     * @param string $certificatePath
      * @return bool|resource
      * @throws \Granam\Safari\Exceptions\CanNotGetPrivateKeyFromOpenedCertificate
      */
-    private function getPrivateKeyResource(array $certificateData, string $certificatePassword, string $certificatePath)
+    private function getPrivateKeyResource(array $certificateData)
     {
-        $privateKey = \openssl_pkey_get_private($certificateData['pkey'], $certificatePassword);
+        $privateKey = \openssl_pkey_get_private($certificateData['pkey'], $this->certificatePassword);
         if (!$privateKey) {
             throw new Exceptions\CanNotGetPrivateKeyFromOpenedCertificate(
-                "Can not get private key after successful decoding of $certificatePath"
+                "Can not get private key after successful decoding of $this->certificatePath"
             );
         }
 
@@ -384,15 +393,13 @@ class PushPackage extends StrictObject
      * @param string $outputSignatureFullPath
      * @param $certificateResource
      * @param $privateKey
-     * @param string $intermediateCertificatePath
      * @throws \Granam\Safari\Exceptions\CanNotSignManifest
      */
     private function signManifest(
         string $manifestFullPath,
         string $outputSignatureFullPath,
         $certificateResource,
-        $privateKey,
-        string $intermediateCertificatePath
+        $privateKey
     )
     {
         //
@@ -403,7 +410,7 @@ class PushPackage extends StrictObject
             $privateKey,
             [], // no special headers needed
             PKCS7_BINARY | PKCS7_DETACHED,
-            $intermediateCertificatePath
+            $this->intermediateCertificatePath
         );
         if (!$signed) {
             throw new Exceptions\CanNotSignManifest(
