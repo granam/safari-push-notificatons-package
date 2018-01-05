@@ -5,6 +5,9 @@ namespace Granam\Safari;
 
 use Granam\Strict\Object\StrictObject;
 
+/**
+ * This is mostly just a syntax sugar of original https://github.com/connorlacombe/Safari-Push-Notifications/
+ */
 abstract class PushPackageController extends StrictObject
 {
     /**
