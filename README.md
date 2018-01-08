@@ -5,9 +5,9 @@ Heavily inspired by [connorlacombe/Safari-Push-Notifications/](https://github.co
 ## Flow
 
 On your Javascript command, by calling
-```js
-pushSafariNotification(webServiceId, webServiceUrl, serverPushUrl, userId, title, text, buttonText)
-```
+`pushSafariNotification`([webServiceId](https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/NotificationProgrammingGuideForWebsites/PushNotifications/PushNotifications.html#//apple_ref/doc/uid/TP40013225-CH3-SW33),
+[webServiceUrl](https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/NotificationProgrammingGuideForWebsites/PushNotifications/PushNotifications.html#//apple_ref/doc/uid/TP40013225-CH3-SW4),
+serverPushUrl, userId, title, text, buttonText)
 - browser will check if is Safari of sufficient version ([OS X v10.9 and later](https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/NotificationProgrammingGuideForWebsites/PushNotifications/PushNotifications.html))
 - if user already allowed push notifications
     - then push notification **is** send
@@ -20,6 +20,6 @@ pushSafariNotification(webServiceId, webServiceUrl, serverPushUrl, userId, title
         - then Apple will send user decision to `\Granam\Safari\PushPackageController::devicesRegistrations` by calling an URL you set via Apple developer console
         - then - if user *agreed*
                 - thenJS event `safariPushNotificationsPermissionsJustGranted` is triggered on window object
-                - then **push notification is send**
+                - then push notification **is** send
             - else if user *declined*, then JS event `safariPushNotificationsPermissionsJustDenied` is triggered on window object and push notification is **not** sent
     - then JS event `safariPushNotificationsPermissionsRequestEnd` is triggered on window object
