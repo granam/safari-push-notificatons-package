@@ -392,15 +392,15 @@ class PushPackage extends StrictObject
      *
      * @param string $manifestFullPath
      * @param string $outputSignatureFullPath
-     * @param $certificateResource
-     * @param $privateKey
+     * @param resource $certificateResource
+     * @param resource $privateKeyResource
      * @throws \Granam\Safari\Exceptions\CanNotSignManifest
      */
     private function signManifest(
         string $manifestFullPath,
         string $outputSignatureFullPath,
         $certificateResource,
-        $privateKey
+        $privateKeyResource
     )
     {
         //
@@ -408,7 +408,7 @@ class PushPackage extends StrictObject
             $manifestFullPath,
             $outputSignatureFullPath,
             $certificateResource,
-            $privateKey,
+            $privateKeyResource,
             [], // no special headers needed
             PKCS7_BINARY | PKCS7_DETACHED,
             $this->intermediateCertificatePath
@@ -483,6 +483,11 @@ class PushPackage extends StrictObject
         return $zipFileName;
     }
 
+    /**
+     * If user ID had to bee prolonged, this method can restore the original user ID
+     * @param string $rawUserId
+     * @return string
+     */
     public function parseUserId(string $rawUserId): string
     {
         return (string)\preg_replace('~^user_identifier_~', '', $rawUserId);

@@ -65,6 +65,32 @@ var requestPermissionsForSafariPushNotifications = function (webServiceUrl, webS
  * @throws {Error}
  */
 function checkPermissionsForSafariPushNotifications(webServiceId, webServiceUrl, userId, targetToAlsoTriggerEventOn) {
+    var permission = getStatusOfPermissionForPushNotification(webServiceId, webServiceUrl, userId);
+    if (permission === false) {
+        return false;
+    }
+    if (permission === 'default') { // user does not yet decide
+        triggerEventOnWindow('safariPushNotificationsPermissionsRequestStart');
+        requestPermissionsForSafariPushNotifications(webServiceUrl, webServiceId, userId, targetToAlsoTriggerEventOn);
+        return null; // unknown yet - user decision will solve on fly and event catcher bind to targetToAlsoTriggerEventOn
+    } else if (permission === 'granted') {
+        triggerEventOnWindow('safariPushNotificationsPermissionsAlreadyGranted');
+        // deviceToken = permissions.deviceToken; we do not need it
+        return true;
+    } else if (permission === 'denied') {
+        triggerEventOnWindow('safariPushNotificationsPermissionsAlreadyDenied');
+        return false;
+    }
+}
+
+/**
+ * @param webServiceId
+ * @param webServiceUrl
+ * @param userId
+ * @return {boolean|string}
+ * @throws {Error}
+ */
+function getStatusOfPermissionForPushNotification(webServiceId, webServiceUrl, userId) {
     if (!isBrowserSupportingSafariPushNotifications()) {
         return false;
     }
@@ -75,18 +101,19 @@ function checkPermissionsForSafariPushNotifications(webServiceId, webServiceUrl,
         throw ('Invalid webServiceUrl, expected something like https://example.com, got ' + webServiceUrl);
     }
     var permissions = window.safari.pushNotification.permission(webServiceId);
-    if (permissions.permission === 'default') { // user does not yet choose
-        triggerEventOnWindow('safariPushNotificationsPermissionsRequestStart');
-        requestPermissionsForSafariPushNotifications(webServiceUrl, webServiceId, userId, targetToAlsoTriggerEventOn);
-        return null; // unknown yet
-    } else if (permissions.permission === 'granted') {
-        triggerEventOnWindow('safariPushNotificationsPermissionsAlreadyGranted');
-        // deviceToken = permissions.deviceToken; we do not need it
-        return true;
-    } else if (permissions.permission === 'denied') {
-        triggerEventOnWindow('safariPushNotificationsPermissionsAlreadyDenied');
-        return false;
-    }
+
+    return permissions.permission === 'default';
+}
+
+/**
+ * @param webServiceId
+ * @param webServiceUrl
+ * @param userId
+ * @return {boolean}
+ * @throws {Error}
+ */
+function hasUserAllowedPushNotifications(webServiceId, webServiceUrl, userId) {
+    return getStatusOfPermissionForPushNotification(webServiceId, webServiceUrl, userId) === 'granted';
 }
 
 /**
