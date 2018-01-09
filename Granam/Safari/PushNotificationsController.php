@@ -90,84 +90,98 @@ abstract class PushNotificationsController extends StrictObject
      * The URL format should be {webServiceURL}/{version}/devices/{deviceToken}/registrations/{websitePushID}
      *
      * @link https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/NotificationProgrammingGuideForWebsites/PushNotifications/PushNotifications.html#//apple_ref/doc/uid/TP40013225-CH3-SW24
+     * @return bool
      */
-    public function devicesRegistrations()
+    public function devicesRegistrations(): bool
     {
         /** this is the authenticationToken key we packaged in the website.json pushPackage, @see \Granam\Safari\PushPackage::getWebsiteJsonContent */
         $userId = $this->pushPackage->parseUserId($_SERVER['HTTP_AUTHORIZATION'] ?? ''); // need to be parsed as it could be encoded due to Apple length requirement
         if ($userId === '') {
             \header('HTTP/1.1 401 Unauthorized');
-            exit;
+
+            return false;
         }
         $path = $_SERVER['PATH_INFO'] ?? '';
         if (!\preg_match('~^.*/v(?<version>\d+)/devices/(?<deviceToken>[^/]+)/registrations/(?<websitePushId>[^/]+)~', $path, $matches)) {
             \header('HTTP/1.0 400 Bad Request');
-            exit;
+
+            return false;
         }
         if (!$this->isWebsitePushIdMatching($matches['websitePushId'])) {
             \header('HTTP/1.1 403 Forbidden Invalid Website Push Id');
-            exit;
+
+            return false;
         }
         $deviceToken = $matches['deviceToken'];
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->addDevice($userId, $deviceToken);
-            exit;
+            return $this->addDevice($userId, $deviceToken);
         }
         if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
-            $this->deleteDevice($userId, $deviceToken);
-            exit;
+            return $this->deleteDevice($userId, $deviceToken);
         }
+        \header('HTTP/1.0 400 Bad Request');
+
+        return false;
     }
 
-    abstract protected function addDevice(string $userId, string $token);
+    abstract protected function addDevice(string $userId, string $deviceToken): bool;
 
-    abstract protected function deleteDevice(string $userId, string $token);
+    abstract protected function deleteDevice(string $userId, string $deviceToken): bool;
 
     /**
      * To receive reported errors from Apple.
      * The URL format should be {webServiceURL}/{version}/log and errors should be reported by POST method
      * @link https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/NotificationProgrammingGuideForWebsites/PushNotifications/PushNotifications.html#//apple_ref/doc/uid/TP40013225-CH3-SW27
+     * @return bool
      */
-    public function log()
+    public function log(): bool
     {
+        $this->sendAlreadyExpiredHeaders();
         $contents = \file_get_contents('php://input');
         if (!$contents) {
             \header('HTTP/1.0 400 Bad Request Missing Content');
-            exit;
+
+            return false;
         }
         $decoded = \json_decode($contents, true /* to get associative array */);
         if (!\array_key_exists('log', $decoded)) {
             \header('HTTP/1.0 400 Bad Request Missing log');
-            exit;
+
+            return false;
         }
-        $this->processErrorLog((array)$decoded['log']);
+
+        return $this->processErrorLog((array)$decoded['log']);
     }
 
-    abstract protected function processErrorLog(array $log);
+    abstract protected function processErrorLog(array $log): bool;
 
     /**
      * @link https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/NotificationProgrammingGuideForWebsites/PushNotifications/PushNotifications.html#//apple_ref/doc/uid/TP40013225-CH3-SW12
      * @throws \Granam\Safari\Exceptions\CanNotEncodePushPayloadToJson
      */
-    public function pushNotification()
+    public function pushNotification(): bool
     {
+        $this->sendAlreadyExpiredHeaders();
         $title = \trim($_POST['title'] ?? $_GET['title'] ?? '');
         if ($title === '') {
             \header('HTTP/1.0 400 Bad Request Missing Title');
             echo 'Missing "title"';
-            exit;
+
+            return false;
         }
         $text = \trim($_POST['text'] ?? $_GET['text'] ?? '');
         if ($text === '') {
             \header('HTTP/1.0 400 Bad Request Missing Text');
             echo 'Missing "text"';
-            exit;
+
+            return false;
         }
         $userId = \trim($_POST['user-id'] ?? $_GET['user-id'] ?? '');
         if ($userId === '') {
             \header('HTTP/1.0 400 Bad Request Missing user-id');
             echo 'Missing "user-id"';
-            exit;
+
+            return false;
         }
         $urlArguments = $_POST['arguments'] ?? $_GET['arguments'] ?? [];
         if (\is_string($urlArguments)) {
@@ -177,14 +191,16 @@ abstract class PushNotificationsController extends StrictObject
             \header('HTTP/1.0 400 Bad Request Invalid Number Of Arguments');
             echo 'Invalid number of arguments, expected ' . $this->pushPackage->getCountOfExpectedArguments()
                 . ' of them, got ' . var_export($urlArguments, true);
-            exit;
+
+            return false;
         }
         $buttonText = \trim($_POST['button-text'] ?? $_GET['button-text'] ?? ''); // if empty then MacOS will use default one (View)
         $deviceToken = $this->getDeviceToken($userId);
         if (!$deviceToken) {
             \header('HTTP/1.0 404 Not Found Device by Given User Authentication Token');
             echo 'No device has been found by give user authentication token';
-            exit;
+
+            return false;
         }
         $payload = [
             'aps' => [
@@ -207,10 +223,12 @@ abstract class PushNotificationsController extends StrictObject
                 \header('HTTP/1.0 400 Bad Request Payload To Sent Is Too Long');
                 echo 'Final push notification payload to send is longer than allowed 256 bytes with length of '
                     . \strlen($jsonPayload) . ' bytes';
-                exit;
+
+                return false;
             }
         }
-        $this->sendPushNotification($jsonPayload, \str_replace(' ', '', $deviceToken));
+
+        return $this->sendPushNotification($jsonPayload, \str_replace(' ', '', $deviceToken));
     }
 
     /**
