@@ -24,6 +24,8 @@ abstract class PushNotificationsController extends StrictObject
      * The URL format should be {webServiceURL}/{version}/pushPackages/{websitePushID}
      *
      * @link https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/NotificationProgrammingGuideForWebsites/PushNotifications/PushNotifications.html#//apple_ref/doc/uid/TP40013225-CH3-SW24
+     *
+     * @return bool
      * @throws \Granam\Safari\Exceptions\CanNotCreateTemporaryPackageDir
      * @throws \Granam\Safari\Exceptions\CanNotEncodeWebsiteToJson
      * @throws \Granam\Safari\Exceptions\CanNotSaveWebsiteJsonToPackage
@@ -44,34 +46,42 @@ abstract class PushNotificationsController extends StrictObject
      * @throws \Granam\Safari\Exceptions\UnexpectedContentOfPemSignature
      * @throws \Granam\Safari\Exceptions\CanNotCreateDerSignatureByDecodingToBase64
      * @throws \Granam\Safari\Exceptions\CanNotSaveDerSignatureToFile
+     * @throws \Granam\Safari\Exceptions\CanNotReadZipPackage
      */
-    public function pushPackages()
+    public function pushPackages(): bool
     {
         $this->sendAlreadyExpiredHeaders();
         $path = $_SERVER['PATH_INFO'] ?? '';
         if (!\preg_match('~^.*/v(?<version>\d+)/pushPackages/(?<websitePushId>[^/]+)~', $path, $matches)) {
             \header('HTTP/1.0 400 Bad Request');
-            exit;
+
+            return false;
         }
         if (!$this->isWebsitePushIdMatching($matches['websitePushId'])) {
             \header('HTTP/1.1 403 Forbidden Invalid Parameter websitePushId');
-            exit;
+
+            return false;
         }
         $contents = \file_get_contents('php://input');
         if (!$contents) {
             \header('HTTP/1.0 400 Bad Request Missing Parameters');
-            exit;
+
+            return false;
         }
         $contents = \json_decode($contents, true /* to get associative array */);
         $userId = (string)($contents['userId'] ?? '');
         if ($userId === '') {
             \header('HTTP/1.0 400 Bad Request Missing Parameter userId');
-            exit;
+
+            return false;
         }
         $zipPackage = $this->pushPackage->createPushPackage($userId);
-        header('Content-type: application/zip');
-        readfile($zipPackage);
-        exit;
+        \header('Content-type: application/zip');
+        if (!readfile($zipPackage)) {
+            throw new Exceptions\CanNotReadZipPackage("ZIPed package {$zipPackage} can not be read");
+        }
+
+        return true;
     }
 
     private function sendAlreadyExpiredHeaders()
@@ -102,7 +112,9 @@ abstract class PushNotificationsController extends StrictObject
             return false;
         }
         $path = $_SERVER['PATH_INFO'] ?? '';
-        if (!\preg_match('~^.*/v(?<version>\d+)/devices/(?<deviceToken>[^/]+)/registrations/(?<websitePushId>[^/]+)~', $path, $matches)) {
+        if ($path === ''
+            || !\preg_match('~^.*/v(?<version>\d+)/devices/(?<deviceToken>[^/]+)/registrations/(?<websitePushId>[^/]+)~', $path, $matches)
+        ) {
             \header('HTTP/1.0 400 Bad Request');
 
             return false;
@@ -243,4 +255,52 @@ abstract class PushNotificationsController extends StrictObject
      * @return bool True on success, False on failure (for asynchronous requests just return True).
      */
     abstract protected function sendPushNotification(string $jsonPayload, string $deviceToken): bool;
+
+    /**
+     * @param string|null $path
+     * @return bool
+     * @throws \Granam\Safari\Exceptions\UnknownActionToDo
+     * @throws \Granam\Safari\Exceptions\CanNotCreateTemporaryPackageDir
+     * @throws \Granam\Safari\Exceptions\CanNotEncodeWebsiteToJson
+     * @throws \Granam\Safari\Exceptions\CanNotSaveWebsiteJsonToPackage
+     * @throws \Granam\Safari\Exceptions\CanNotCreateZipArchive
+     * @throws \Granam\Safari\Exceptions\CanNotAddFileToZipArchive
+     * @throws \Granam\Safari\Exceptions\CanNotCloseZipArchive
+     * @throws \Granam\Safari\Exceptions\CanNotCreateDirForIconSet
+     * @throws \Granam\Safari\Exceptions\CanNotCopyIcon
+     * @throws \Granam\Safari\Exceptions\CanNotCalculateSha1FromFile
+     * @throws \Granam\Safari\Exceptions\CanNotEncodeManifestDataToJson
+     * @throws \Granam\Safari\Exceptions\CanNotSaveManifestJsonFile
+     * @throws \Granam\Safari\Exceptions\CanNotGetCertificateContent
+     * @throws \Granam\Safari\Exceptions\CanNotReadCertificateData
+     * @throws \Granam\Safari\Exceptions\CanNotGetResourceFromOpenedCertificate
+     * @throws \Granam\Safari\Exceptions\CanNotGetPrivateKeyFromOpenedCertificate
+     * @throws \Granam\Safari\Exceptions\CanNotSignManifest
+     * @throws \Granam\Safari\Exceptions\CanNotReadPemSignatureFromFile
+     * @throws \Granam\Safari\Exceptions\UnexpectedContentOfPemSignature
+     * @throws \Granam\Safari\Exceptions\CanNotCreateDerSignatureByDecodingToBase64
+     * @throws \Granam\Safari\Exceptions\CanNotSaveDerSignatureToFile
+     * @throws \Granam\Safari\Exceptions\CanNotReadZipPackage
+     */
+    public function processAppleAction(string $path = null): bool
+    {
+        $path = $path ?? $_SERVER['PATH_INFO'] ?? '';
+        if ($path === '' || \preg_match('~^/v\d+/(?<action>[^/]+)/~', $path, $matches)) {
+            throw new Exceptions\UnknownActionToDo("Do not know what to do by {$path}");
+        }
+        switch ($matches['action']) {
+            case 'pushPackages' :
+                return $this->pushPackages();
+            case 'devices' :
+                if (!\preg_match('~^/v\d +/devices / [^/]+/registrations / ~', $path, $matches)) {
+                    throw new Exceptions\UnknownActionToDo("Do not know what to do by {$path}");
+                }
+
+                return $this->devicesRegistrations();
+            case 'log' :
+                return $this->log();
+            default :
+                throw new Exceptions\UnknownActionToDo("Do not know what to do by {$path}");
+        }
+    }
 }
