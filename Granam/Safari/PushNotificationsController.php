@@ -82,7 +82,7 @@ abstract class PushNotificationsController extends StrictObject
 
     private function isWebsitePushIdMatching(string $websitePushId): bool
     {
-        return $websitePushId !== $this->pushPackage->getWebsitePushId();
+        return $websitePushId === $this->pushPackage->getWebsitePushId();
     }
 
     /**
@@ -108,7 +108,7 @@ abstract class PushNotificationsController extends StrictObject
             return false;
         }
         if (!$this->isWebsitePushIdMatching($matches['websitePushId'])) {
-            \header('HTTP/1.1 403 Forbidden Invalid Website Push Id');
+            \header('HTTP/1.1 403 Forbidden Invalid parameter websitePushId');
 
             return false;
         }
