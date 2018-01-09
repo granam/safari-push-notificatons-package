@@ -86,9 +86,9 @@ function checkPermissionsForSafariPushNotifications(websitePushId, webServiceUrl
 }
 
 /**
- * @param websitePushId
- * @param webServiceUrl
- * @param userId
+ * @param {string} websitePushId
+ * @param {string} webServiceUrl
+ * @param {string} userId
  * @return {boolean|string}
  * @throws {Error}
  */
@@ -96,8 +96,14 @@ function getStatusOfPermissionForPushNotification(websitePushId, webServiceUrl, 
     if (!isBrowserSupportingSafariPushNotifications()) {
         return false;
     }
+    if (typeof websitePushId === 'undefined') {
+        throw ('Missing websitePushId');
+    }
     if (!websitePushId.match(/web([.]\w+)+/)) {
         throw ('Invalid websitePushId, expected something like web.com.example.foo, got ' + websitePushId);
+    }
+    if (typeof webServiceUrl === 'undefined') {
+        throw ('Missing webServiceUrl');
     }
     if (!webServiceUrl.match(/https?:\/\/\w*/)) {
         throw ('Invalid webServiceUrl, expected something like https://example.com, got ' + webServiceUrl);
@@ -108,9 +114,9 @@ function getStatusOfPermissionForPushNotification(websitePushId, webServiceUrl, 
 }
 
 /**
- * @param websitePushId
- * @param webServiceUrl
- * @param userId
+ * @param {string} websitePushId
+ * @param {string} webServiceUrl
+ * @param {string} userId
  * @return {boolean}
  * @throws {Error}
  */
@@ -119,9 +125,9 @@ function hasUserAllowedPushNotifications(websitePushId, webServiceUrl, userId) {
 }
 
 /**
- * @param websitePushId
- * @param webServiceUrl
- * @param userId
+ * @param {string} websitePushId
+ * @param {string} webServiceUrl
+ * @param {string} userId
  * @return {boolean}
  * @throws {Error}
  */
@@ -130,9 +136,9 @@ function hasUserDeniedPushNotifications(websitePushId, webServiceUrl, userId) {
 }
 
 /**
- * @param websitePushId
- * @param webServiceUrl
- * @param userId
+ * @param {string} websitePushId
+ * @param {string} webServiceUrl
+ * @param {string} userId
  * @return {boolean}
  * @throws {Error}
  */
