@@ -27,13 +27,13 @@ var triggerEventOn = function (name, element) {
  * @link https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/NotificationProgrammingGuideForWebsites/PushNotifications/PushNotifications.html#//apple_ref/doc/uid/TP40013225-CH3-SW1
  *
  * @param {string} webServiceUrl
- * @param {string} webServiceId
+ * @param {string} websitePushId
  * @param {string} userId
  * @param {Element} targetToAlsoTriggerEventOn
  * @return {boolean}
  */
-var requestPermissionsForSafariPushNotifications = function (webServiceUrl, webServiceId, userId, targetToAlsoTriggerEventOn) {
-    window.safari.pushNotification.requestPermission(webServiceUrl, webServiceId, {"user-id": userId}, function (response) {
+var requestPermissionsForSafariPushNotifications = function (webServiceUrl, websitePushId, userId, targetToAlsoTriggerEventOn) {
+    window.safari.pushNotification.requestPermission(webServiceUrl, websitePushId, {"user-id": userId}, function (response) {
         if (response.permission === 'granted') {
             triggerEventOnWindow('safariPushNotificationsPermissionsJustGranted');
             // deviceToken = response.deviceToken; we do not need it
@@ -59,21 +59,21 @@ var requestPermissionsForSafariPushNotifications = function (webServiceUrl, webS
 };
 
 /**
- * @param {string} webServiceId
+ * @param {string} websitePushId
  * @param {string} webServiceUrl
  * @param {string} userId
  * @param {Element} targetToAlsoTriggerEventOn
  * @returns {boolean|null}
  * @throws {Error}
  */
-function checkPermissionsForSafariPushNotifications(webServiceId, webServiceUrl, userId, targetToAlsoTriggerEventOn) {
-    var permission = getStatusOfPermissionForPushNotification(webServiceId, webServiceUrl, userId);
+function checkPermissionsForSafariPushNotifications(websitePushId, webServiceUrl, userId, targetToAlsoTriggerEventOn) {
+    var permission = getStatusOfPermissionForPushNotification(websitePushId, webServiceUrl, userId);
     if (permission === false) {
         return false;
     }
     if (permission === 'default') { // user does not yet decide
         triggerEventOnWindow('safariPushNotificationsPermissionsRequestStart');
-        requestPermissionsForSafariPushNotifications(webServiceUrl, webServiceId, userId, targetToAlsoTriggerEventOn);
+        requestPermissionsForSafariPushNotifications(webServiceUrl, websitePushId, userId, targetToAlsoTriggerEventOn);
         return null; // unknown yet - user decision will solve on fly and event catcher bind to targetToAlsoTriggerEventOn
     } else if (permission === 'granted') {
         triggerEventOnWindow('safariPushNotificationsPermissionsAlreadyGranted');
@@ -86,62 +86,62 @@ function checkPermissionsForSafariPushNotifications(webServiceId, webServiceUrl,
 }
 
 /**
- * @param webServiceId
+ * @param websitePushId
  * @param webServiceUrl
  * @param userId
  * @return {boolean|string}
  * @throws {Error}
  */
-function getStatusOfPermissionForPushNotification(webServiceId, webServiceUrl, userId) {
+function getStatusOfPermissionForPushNotification(websitePushId, webServiceUrl, userId) {
     if (!isBrowserSupportingSafariPushNotifications()) {
         return false;
     }
-    if (!webServiceId.match(/web([.]\w+)+/)) {
-        throw ('Invalid webServiceId, expected something like web.com.example.foo, got ' + webServiceId);
+    if (!websitePushId.match(/web([.]\w+)+/)) {
+        throw ('Invalid websitePushId, expected something like web.com.example.foo, got ' + websitePushId);
     }
     if (!webServiceUrl.match(/https?:\/\/\w*/)) {
         throw ('Invalid webServiceUrl, expected something like https://example.com, got ' + webServiceUrl);
     }
-    var permissions = window.safari.pushNotification.permission(webServiceId);
+    var permissions = window.safari.pushNotification.permission(websitePushId);
 
     return permissions.permission;
 }
 
 /**
- * @param webServiceId
+ * @param websitePushId
  * @param webServiceUrl
  * @param userId
  * @return {boolean}
  * @throws {Error}
  */
-function hasUserAllowedPushNotifications(webServiceId, webServiceUrl, userId) {
-    return getStatusOfPermissionForPushNotification(webServiceId, webServiceUrl, userId) === 'granted';
+function hasUserAllowedPushNotifications(websitePushId, webServiceUrl, userId) {
+    return getStatusOfPermissionForPushNotification(websitePushId, webServiceUrl, userId) === 'granted';
 }
 
 /**
- * @param webServiceId
+ * @param websitePushId
  * @param webServiceUrl
  * @param userId
  * @return {boolean}
  * @throws {Error}
  */
-function hasUserDeniedPushNotifications(webServiceId, webServiceUrl, userId) {
-    return getStatusOfPermissionForPushNotification(webServiceId, webServiceUrl, userId) === 'denied';
+function hasUserDeniedPushNotifications(websitePushId, webServiceUrl, userId) {
+    return getStatusOfPermissionForPushNotification(websitePushId, webServiceUrl, userId) === 'denied';
 }
 
 /**
- * @param webServiceId
+ * @param websitePushId
  * @param webServiceUrl
  * @param userId
  * @return {boolean}
  * @throws {Error}
  */
-function hasUserChoosedPushNotifications(webServiceId, webServiceUrl, userId) {
-    return getStatusOfPermissionForPushNotification(webServiceId, webServiceUrl, userId) !== 'default';
+function hasUserChoosedPushNotifications(websitePushId, webServiceUrl, userId) {
+    return getStatusOfPermissionForPushNotification(websitePushId, webServiceUrl, userId) !== 'default';
 }
 
 /**
- * @param {string} webServiceId you specified in Apple developer console
+ * @param {string} websitePushId you specified in Apple developer console
  * @param {string} webServiceUrl you specified in Apple developer console
  * @param {string} serverPushUrl This URL should lead to \Granam\Safari\PushPackageController::pushNotification
  * @param {string} userId per-user-unique ID of your choice
@@ -149,7 +149,7 @@ function hasUserChoosedPushNotifications(webServiceId, webServiceUrl, userId) {
  * @param {string} text Main message shown to user in OS X notification
  * @param {string} buttonText
  */
-function pushSafariNotification(webServiceId, webServiceUrl, serverPushUrl, userId, title, text, buttonText) {
+function pushSafariNotification(websitePushId, webServiceUrl, serverPushUrl, userId, title, text, buttonText) {
     var _pushSafariNotification = function (serverPushUrl, userId, title, text, buttonText) {
         triggerEventOnWindow('sendingSafariPushNotification');
         var xhr = new XMLHttpRequest();
@@ -178,7 +178,7 @@ function pushSafariNotification(webServiceId, webServiceUrl, serverPushUrl, user
         },
         true
     );
-    var permissionsGranted = checkPermissionsForSafariPushNotifications(webServiceId, webServiceUrl, userId, permissionsEventCatcher);
+    var permissionsGranted = checkPermissionsForSafariPushNotifications(websitePushId, webServiceUrl, userId, permissionsEventCatcher);
     if (permissionsGranted === false) {
         triggerEventOnWindow('safariPushNotificationHasNotBeenSent');
     }
