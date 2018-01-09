@@ -24,6 +24,8 @@ var triggerEventOn = function (name, element) {
  * This will send user decision to Apple and Apple will then send a POST or DELETE request to your \Granam\Safari\PushPackageController::devicesRegistrations
  * to add or remove user device, depending on user decision.
  *
+ * @link https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/NotificationProgrammingGuideForWebsites/PushNotifications/PushNotifications.html#//apple_ref/doc/uid/TP40013225-CH3-SW1
+ *
  * @param {string} webServiceUrl
  * @param {string} webServiceId
  * @param {string} userId
@@ -102,7 +104,7 @@ function getStatusOfPermissionForPushNotification(webServiceId, webServiceUrl, u
     }
     var permissions = window.safari.pushNotification.permission(webServiceId);
 
-    return permissions.permission === 'default';
+    return permissions.permission;
 }
 
 /**
