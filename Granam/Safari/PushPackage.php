@@ -69,21 +69,22 @@ class PushPackage extends StrictObject
     private $intermediateCertificatePath;
 
     /**
+     * For details about image sizes visit (for example) @link http://makeappicon.com/osxicon
      * @param string $certificatePath
      * @param string $certificatePassword
      * @param string $intermediateCertificatePath
      * @param string $websiteName like Safari Push Demo, this is the heading used in Notification Center
      * @param string $websitePushId like web.com.example (web. prefix is required), as specified in your Apple developer account
      * @param array $allowedDomains like [https://api.example.com, https://www.example.com]
-     * @param string $urlFormatString like https://www.exmple.com/article.php?id=%@ ('%@' is a two-letter-named placeholder),
+     * @param string $urlFormatString like https://www.example.com/article.php?id=%@ ('%@' is a two-letter-named placeholder),
      * the URL to go to when the notification is clicked (protocol is required and only http and https are allowed)
-     * @param string $webServiceUrl The location used to make requests to your web service. Must start with https.
+     * @param string $webServiceUrl The location used to make requests to your web service, like https://www.example.com/push.php (must start with https)
      * @param string $pathToIcon16x16Png
-     * @param string $pathToIcon16x16DoublePng
+     * @param string $pathToIcon16x16DoublePng 32x32 px in fact, for Retina displays
      * @param string $pathToIcon32x32Png
-     * @param string $pathToIcon32x32DoublePng
+     * @param string $pathToIcon32x32DoublePng 64x64 px in fact, for Retina displays
      * @param string $pathToIcon128x128Png
-     * @param string $pathToIcon128x128DoublePng
+     * @param string $pathToIcon128x128DoublePng 256x256 px in fact, for Retina displays
      * @param string|null $temporaryDir
      * @throws \Granam\Safari\Exceptions\InvalidFormatOfWebsitePushId
      * @throws \Granam\Safari\Exceptions\NoAllowedDomains
@@ -114,7 +115,7 @@ class PushPackage extends StrictObject
         $this->websiteName = $websiteName;
         if (!\preg_match('~^web([.]\w+){1,9}~u', $websitePushId)) {
             throw new Exceptions\InvalidFormatOfWebsitePushId(
-                "Website push ID should be in format web.com.exanple.foo, got $websitePushId"
+                "Website push ID should be in format web.com.example.foo, got $websitePushId"
             );
         }
         $this->websitePushId = $websitePushId;
