@@ -119,6 +119,28 @@ function hasUserAllowedPushNotifications(webServiceId, webServiceUrl, userId) {
 }
 
 /**
+ * @param webServiceId
+ * @param webServiceUrl
+ * @param userId
+ * @return {boolean}
+ * @throws {Error}
+ */
+function hasUserDeniedPushNotifications(webServiceId, webServiceUrl, userId) {
+    return getStatusOfPermissionForPushNotification(webServiceId, webServiceUrl, userId) === 'denied';
+}
+
+/**
+ * @param webServiceId
+ * @param webServiceUrl
+ * @param userId
+ * @return {boolean}
+ * @throws {Error}
+ */
+function hasUserChoosedPushNotifications(webServiceId, webServiceUrl, userId) {
+    return getStatusOfPermissionForPushNotification(webServiceId, webServiceUrl, userId) !== 'default';
+}
+
+/**
  * @param {string} webServiceId you specified in Apple developer console
  * @param {string} webServiceUrl you specified in Apple developer console
  * @param {string} serverPushUrl This URL should lead to \Granam\Safari\PushPackageController::pushNotification
