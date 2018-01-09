@@ -181,10 +181,10 @@ abstract class PushNotificationsController extends StrictObject
 
             return false;
         }
-        $text = \trim($_POST['text'] ?? $_GET['text'] ?? '');
-        if ($text === '') {
-            \header('HTTP/1.0 400 Bad Request Missing Text');
-            echo 'Missing "text"';
+        $body = \trim($_POST['body'] ?? $_GET['body'] ?? '');
+        if ($body === '') {
+            \header('HTTP/1.0 400 Bad Request Missing Body');
+            echo 'Missing "body"';
 
             return false;
         }
@@ -218,7 +218,7 @@ abstract class PushNotificationsController extends StrictObject
             'aps' => [
                 'alert' => [
                     'title' => $title,
-                    'body' => $text,
+                    'body' => $body,
                     'action' => $buttonText
                 ]
             ],
