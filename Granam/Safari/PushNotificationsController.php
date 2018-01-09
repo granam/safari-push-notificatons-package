@@ -259,6 +259,28 @@ abstract class PushNotificationsController extends StrictObject
     /**
      * @param string|null $path
      * @return bool
+     */
+    public function isAppleAction(string $path = null): bool
+    {
+        $path = $path ?? $_SERVER['PATH_INFO'] ?? '';
+        if ($path === '' || \preg_match('~^/v\d+/(?<action>[^/]+)/([^/]+/(?<subAction>))?~', $path, $matches)) {
+            return false;
+        }
+        switch ($matches['action']) {
+            case 'pushPackages' :
+                return true;
+            case 'devices' :
+                return ($matches['subAction'] ?? '') === 'registrations';
+            case 'log' :
+                return true;
+            default :
+                return false;
+        }
+    }
+
+    /**
+     * @param string|null $path
+     * @return bool
      * @throws \Granam\Safari\Exceptions\UnknownActionToDo
      * @throws \Granam\Safari\Exceptions\CanNotCreateTemporaryPackageDir
      * @throws \Granam\Safari\Exceptions\CanNotEncodeWebsiteToJson
