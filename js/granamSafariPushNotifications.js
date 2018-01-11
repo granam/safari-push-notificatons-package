@@ -153,7 +153,7 @@ function hasUserChoosedPushNotifications(websitePushId, webServiceUrl, userId) {
  * @param {string} userId per-user-unique ID of your choice
  * @param {string} title Heading shown to user in OS X notification
  * @param {string} text Main message shown to user in OS X notification
- * @param {string} buttonText
+ * @param {string=} buttonText
  */
 function pushSafariNotification(websitePushId, webServiceUrl, serverPushUrl, userId, title, text, buttonText) {
     var _pushSafariNotification = function (serverPushUrl, userId, title, text, buttonText) {
