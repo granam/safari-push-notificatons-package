@@ -143,7 +143,9 @@ function hasUserDeniedPushNotifications(websitePushId, webServiceUrl, userId) {
  * @throws {Error}
  */
 function hasUserChoosedPushNotifications(websitePushId, webServiceUrl, userId) {
-    return getStatusOfPermissionForPushNotification(websitePushId, webServiceUrl, userId) !== 'default';
+    var status = getStatusOfPermissionForPushNotification(websitePushId, webServiceUrl, userId);
+
+    return status === 'granted' || status === 'denied';
 }
 
 /**
