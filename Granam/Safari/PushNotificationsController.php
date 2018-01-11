@@ -263,7 +263,7 @@ abstract class PushNotificationsController extends StrictObject
     public function isAppleAction(string $path = null): bool
     {
         $path = $path ?? $_SERVER['PATH_INFO'] ?? '';
-        if ($path === '' || \preg_match('~^/v\d+/(?<action>[^/]+)/([^/]+/(?<subAction>))?~', $path, $matches)) {
+        if ($path === '' || !\preg_match('~^/v\d+/(?<action>[^/]+)/([^/]+/(?<subAction>))?~', $path, $matches)) {
             return false;
         }
         switch ($matches['action']) {
