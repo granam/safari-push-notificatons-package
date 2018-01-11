@@ -69,6 +69,7 @@ var requestPermissionsForSafariPushNotifications = function (webServiceUrl, webs
 function checkPermissionsForSafariPushNotifications(websitePushId, webServiceUrl, userId, targetToAlsoTriggerEventOn) {
     var permission = getStatusOfPermissionForPushNotification(websitePushId, webServiceUrl, userId);
     if (permission === false) {
+        triggerEventOnWindow('safariPushNotificationsPermissionsCanNotBeFindOut');
         return false;
     }
     if (permission === 'default') { // user does not yet decide
@@ -94,6 +95,7 @@ function checkPermissionsForSafariPushNotifications(websitePushId, webServiceUrl
  */
 function getStatusOfPermissionForPushNotification(websitePushId, webServiceUrl, userId) {
     if (!isBrowserSupportingSafariPushNotifications()) {
+        triggerEventOnWindow('browserDoesNotSupportSafariPushNotifications');
         return false;
     }
     if (typeof websitePushId === 'undefined') {
